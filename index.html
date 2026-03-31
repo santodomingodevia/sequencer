@@ -560,12 +560,13 @@
   // ——— Audio Context ———
   let ctx = null;
   let masterGain = null;
+  let masterVolume = 0.8;
 
   function initAudio() {
     if (ctx) return;
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = ctx.createGain();
-    masterGain.gain.value = 0.8;
+    masterGain.gain.value = masterVolume;
     masterGain.connect(ctx.destination);
   }
 
@@ -837,8 +838,9 @@
   function getStepTime(step) {
     const beatDuration = 60 / bpm;
     const stepDuration = beatDuration / 4;
-    const swingAmount = (step % 2 === 1) ? (swing / 100) * stepDuration * 0.5 : 0;
-    return stepDuration + swingAmount;
+    const maxSwingOffset = stepDuration * 0.45;
+    const swingOffset = (swing / 100) * maxSwingOffset;
+    return step % 2 === 1 ? stepDuration + swingOffset : stepDuration - swingOffset;
   }
 
   function schedule() {
@@ -993,7 +995,8 @@
   }
 
   function setVolume(val) {
-    if (masterGain) masterGain.gain.value = parseFloat(val);
+    masterVolume = parseFloat(val);
+    if (masterGain) masterGain.gain.value = masterVolume;
   }
 
   function setSwing(val) {
@@ -1003,6 +1006,7 @@
 
   function setStepCount(n) {
     stepCount = n;
+    currentStep = currentStep % stepCount;
     for (let r = 0; r < ROWS.length; r++) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const el = document.getElementById(`step-${r}-${s}`);
