@@ -122,11 +122,6 @@
       background: rgba(255,107,0,0.06);
     }
 
-    #playBtn {
-      width: 120px;
-      transition: none;
-    }
-
     .btn.playing {
       background: var(--accent);
       color: #000;
@@ -182,9 +177,9 @@
     /* STEP LABELS */
     .step-numbers {
       display: grid;
-      grid-template-columns: 110px 36px 36px repeat(16, 1fr);
+      grid-template-columns: 110px repeat(16, 1fr) 36px 36px;
       gap: 4px;
-      margin-bottom: 0;
+      padding: 0 0 4px;
     }
 
     .step-num {
@@ -192,9 +187,6 @@
       font-size: 9px;
       color: var(--text-muted);
       letter-spacing: 1px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
     .step-num.beat { color: var(--accent); font-weight: 700; }
@@ -204,12 +196,11 @@
       display: flex;
       flex-direction: column;
       gap: 5px;
-      margin-top: -10px;
     }
 
     .row {
       display: grid;
-      grid-template-columns: 110px 36px 36px repeat(16, 1fr);
+      grid-template-columns: 110px repeat(16, 1fr) 36px 36px;
       gap: 4px;
       align-items: center;
     }
@@ -287,16 +278,16 @@
     }
 
     .solo-btn:hover {
-      border-color: #00c4ff;
-      color: #00c4ff;
+      border-color: #ffcc00;
+      color: #ffcc00;
     }
 
     .solo-btn.soloed {
-      background: #00c4ff;
-      border-color: #00c4ff;
+      background: #ffcc00;
+      border-color: #ffcc00;
       color: #000;
       font-weight: 700;
-      box-shadow: 0 0 8px rgba(0,196,255,0.5);
+      box-shadow: 0 0 8px rgba(255,204,0,0.5);
     }
 
     .row.silenced-by-solo .step {
@@ -308,17 +299,17 @@
     }
 
     .row.muted .step.on {
-      opacity: 0.15;
+      opacity: 0.25;
       box-shadow: none;
     }
 
     .row.muted .row-name {
-      opacity: 0.25;
+      opacity: 0.35;
       text-decoration: line-through;
     }
 
     .row.muted .step {
-      opacity: 0.2;
+      opacity: 0.3;
     }
 
     .step {
@@ -447,11 +438,11 @@
     .row:nth-child(1) { --row-color: #ff6b00; }
     .row:nth-child(2) { --row-color: #ff9500; }
     .row:nth-child(3) { --row-color: #ffcc00; }
-    .row:nth-child(4) { --row-color: #ff0000; }
+    .row:nth-child(4) { --row-color: #00e5a0; }
     .row:nth-child(5) { --row-color: #00c4ff; }
     .row:nth-child(6) { --row-color: #a855f7; }
     .row:nth-child(7) { --row-color: #ec4899; }
-    .row:nth-child(8) { --row-color: #00e5a0; }
+    .row:nth-child(8) { --row-color: #ff6b00; }
 
     .volume-knob {
       display: flex;
@@ -476,8 +467,7 @@
       .app { padding: 16px 12px 40px; }
       header { padding: 16px 12px 0; }
       .logo { font-size: 36px; }
-      .step { min-width: 0; touch-action: manipulation; }
-      .btn, .mute-btn, .solo-btn { touch-action: manipulation; }
+      .step { min-width: 0; }
       .row-name { font-size: 8px; }
       .bpm-value { font-size: 28px; }
     }
@@ -519,8 +509,6 @@
     <!-- Step numbers -->
     <div class="step-numbers">
       <div></div>
-      <div></div>
-      <div></div>
       <div class="step-num beat">1</div>
       <div class="step-num">2</div>
       <div class="step-num">3</div>
@@ -537,6 +525,8 @@
       <div class="step-num">14</div>
       <div class="step-num">15</div>
       <div class="step-num">16</div>
+      <div></div>
+      <div></div>
     </div>
 
     <!-- Grid -->
@@ -552,14 +542,8 @@
       <div class="sep"></div>
       <div class="ctrl-group">
         <span class="ctrl-label">Steps</span>
-        <button class="btn" onclick="setStepCount(2)">2</button>
-        <button class="btn" onclick="setStepCount(4)">4</button>
         <button class="btn" onclick="setStepCount(8)">8</button>
         <button class="btn" onclick="setStepCount(16)">16</button>
-      </div>
-      <div class="sep"></div>
-      <div class="ctrl-group">
-        <button class="btn" onclick="exportWAV()">Export WAV</button>
       </div>
       <div class="pattern-btns">
         <span class="ctrl-label" style="align-self:center">FILL</span>
@@ -579,35 +563,22 @@
 
   function initAudio() {
     if (ctx) return;
-    try {
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
-      if (!ctx) throw new Error('AudioContext not supported');
-      masterGain = ctx.createGain();
-      masterGain.gain.value = parseFloat(document.getElementById('masterVol').value);
-      masterGain.connect(ctx.destination);
-    } catch (e) {
-      console.error('Error initializing audio:', e);
-      alert('Audio not supported in this browser.');
-    }
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.8;
+    masterGain.connect(ctx.destination);
   }
-
-  // ——— Handle Page Visibility for Mobile ———
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && ctx && ctx.state === 'suspended') {
-      ctx.resume().catch(e => console.warn('Could not resume audio context:', e));
-    }
-  });
 
   // ——— Instruments ———
   const ROWS = [
     { name: 'KICK',   type: 'Drum',    color: '#ff6b00' },
     { name: 'SNARE',  type: 'Drum',    color: '#ff9500' },
     { name: 'CLAP',   type: 'Perc',    color: '#ffcc00' },
-    { name: 'HAT C',  type: 'Hi-hat',  color: '#ff0000' },
+    { name: 'HAT C',  type: 'Hi-hat',  color: '#00e5a0' },
     { name: 'HAT O',  type: 'Hi-hat',  color: '#00c4ff' },
     { name: 'TOM',    type: 'Drum',    color: '#a855f7' },
     { name: 'BASS',   type: '808',     color: '#ec4899' },
-    { name: 'PERC',   type: 'Shaker',  color: '#00e5a0' },
+    { name: 'PERC',   type: 'Shaker',  color: '#ff6b00' },
   ];
 
   const NUM_STEPS = 16;
@@ -674,6 +645,16 @@
       label.innerHTML = `<div class="row-name">${ROWS[r].name}</div><div class="row-type">${ROWS[r].type}</div>`;
       rowEl.appendChild(label);
 
+      // Steps
+      for (let s = 0; s < NUM_STEPS; s++) {
+        const step = document.createElement('div');
+        step.className = 'step' + (grid[r][s] ? ' on' : '');
+        step.style.setProperty('--row-color', ROWS[r].color);
+        step.id = `step-${r}-${s}`;
+        step.addEventListener('click', () => toggleStep(r, s));
+        rowEl.appendChild(step);
+      }
+
       // Mute button
       const muteBtn = document.createElement('button');
       muteBtn.className = 'mute-btn';
@@ -691,16 +672,6 @@
       soloBtn.title = 'Solo canal';
       soloBtn.addEventListener('click', () => toggleSolo(r));
       rowEl.appendChild(soloBtn);
-
-      // Steps
-      for (let s = 0; s < NUM_STEPS; s++) {
-        const step = document.createElement('div');
-        step.className = 'step' + (grid[r][s] ? ' on' : '');
-        step.style.setProperty('--row-color', ROWS[r].color);
-        step.id = `step-${r}-${s}`;
-        step.addEventListener('click', () => toggleStep(r, s));
-        rowEl.appendChild(step);
-      }
       container.appendChild(rowEl);
     }
   }
@@ -713,95 +684,12 @@
     el.classList.toggle('on', grid[r][s]);
   }
 
-  // ——— WAV Export ———
-  function bufferToWave(abuffer, len) {
-    const numOfChan = abuffer.numberOfChannels;
-    const length = len * numOfChan * 2 + 44;
-    const buffer = new ArrayBuffer(length);
-    const view = new DataView(buffer);
-    const channels = [];
-    let i, sample, offset = 0, pos = 0;
-
-    // write WAVE header
-    setUint32(0x46464952);                         // "RIFF"
-    setUint32(length - 8);                         // file length - 8
-    setUint32(0x45564157);                         // "WAVE"
-
-    setUint32(0x20746d66);                         // "fmt " chunk
-    setUint32(16);                                 // length = 16
-    setUint16(1);                                  // PCM (uncompressed)
-    setUint16(numOfChan);
-    setUint32(abuffer.sampleRate);
-    setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-    setUint16(numOfChan * 2);                      // block-align
-    setUint16(16);                                 // 16-bit (hardcoded in this demo)
-
-    setUint32(0x61746164);                         // "data" - chunk
-    setUint32(length - pos - 4);                   // chunk length
-
-    // write interleaved data
-    for (i = 0; i < abuffer.numberOfChannels; i++)
-      channels.push(abuffer.getChannelData(i));
-
-    while (pos < length) {
-      for (i = 0; i < numOfChan; i++) {             // interleave channels
-        sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
-        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit signed int
-        view.setInt16(pos, sample, true);          // write 16-bit sample
-        pos += 2;
-      }
-      offset++                                     // next source sample
-    }
-
-    return new Blob([buffer], { type: "audio/wav" });
-
-    function setUint16(data) {
-      view.setUint16(pos, data, true);
-      pos += 2;
-    }
-
-    function setUint32(data) {
-      view.setUint32(pos, data, true);
-      pos += 4;
-    }
-  }
-
-  function exportWAV() {
-    const duration = (60 / bpm) * stepCount; // duration in seconds
-    const offlineCtx = new OfflineAudioContext(2, ctx.sampleRate * duration, ctx.sampleRate);
-    const offlineGain = offlineCtx.createGain();
-    offlineGain.gain.value = 0.8;
-    offlineGain.connect(offlineCtx.destination);
-
-    // Schedule all sounds
-    let currentTime = 0;
-    for (let step = 0; step < stepCount; step++) {
-      for (let r = 0; r < ROWS.length; r++) {
-        if (grid[r][step]) {
-          SOUNDS[r](offlineCtx, offlineGain, currentTime);
-        }
-      }
-      currentTime += getStepTime(step);
-    }
-
-    // Render
-    offlineCtx.startRendering().then(buffer => {
-      const wav = bufferToWave(buffer, buffer.length);
-      const url = URL.createObjectURL(wav);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'sequence.wav';
-      a.click();
-      URL.revokeObjectURL(url);
-    }).catch(e => console.error('Export failed:', e));
-  }
-
   // ——— Sound Synthesis ———
-  function playKick(ctx, gain, time) {
+  function playKick(time) {
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
     osc.connect(env);
-    env.connect(gain);
+    env.connect(masterGain);
     osc.frequency.setValueAtTime(160, time);
     osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
     env.gain.setValueAtTime(1, time);
@@ -810,7 +698,7 @@
     osc.stop(time + 0.35);
   }
 
-  function playSnare(ctx, gain, time) {
+  function playSnare(time) {
     // noise
     const bufSize = ctx.sampleRate * 0.2;
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
@@ -824,7 +712,7 @@
     const noiseGain = ctx.createGain();
     noise.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
-    noiseGain.connect(gain);
+    noiseGain.connect(masterGain);
     noiseGain.gain.setValueAtTime(0.7, time);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
     noise.start(time);
@@ -834,7 +722,7 @@
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
     osc.connect(env);
-    env.connect(gain);
+    env.connect(masterGain);
     osc.frequency.setValueAtTime(200, time);
     env.gain.setValueAtTime(0.5, time);
     env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
@@ -842,7 +730,7 @@
     osc.stop(time + 0.1);
   }
 
-  function playClap(ctx, gain, time) {
+  function playClap(time) {
     for (let i = 0; i < 3; i++) {
       const t = time + i * 0.012;
       const bufSize = Math.floor(ctx.sampleRate * 0.05);
@@ -854,18 +742,18 @@
       const filter = ctx.createBiquadFilter();
       filter.type = 'bandpass';
       filter.frequency.value = 1200;
-      const g = ctx.createGain();
+      const gain = ctx.createGain();
       src.connect(filter);
-      filter.connect(g);
-      g.connect(gain);
-      g.gain.setValueAtTime(0.6, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      filter.connect(gain);
+      gain.connect(masterGain);
+      gain.gain.setValueAtTime(0.6, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
       src.start(t);
       src.stop(t + 0.15);
     }
   }
 
-  function playHatClosed(ctx, gain, time) {
+  function playHatClosed(time) {
     const bufSize = Math.floor(ctx.sampleRate * 0.04);
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
     const d = buf.getChannelData(0);
@@ -876,13 +764,13 @@
     f.type = 'highpass';
     f.frequency.value = 7000;
     const g = ctx.createGain();
-    src.connect(f); f.connect(g); g.connect(gain);
+    src.connect(f); f.connect(g); g.connect(masterGain);
     g.gain.setValueAtTime(0.5, time);
     g.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
     src.start(time); src.stop(time + 0.04);
   }
 
-  function playHatOpen(ctx, gain, time) {
+  function playHatOpen(time) {
     const bufSize = Math.floor(ctx.sampleRate * 0.3);
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
     const d = buf.getChannelData(0);
@@ -893,16 +781,16 @@
     f.type = 'highpass';
     f.frequency.value = 5000;
     const g = ctx.createGain();
-    src.connect(f); f.connect(g); g.connect(gain);
+    src.connect(f); f.connect(g); g.connect(masterGain);
     g.gain.setValueAtTime(0.4, time);
     g.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
     src.start(time); src.stop(time + 0.3);
   }
 
-  function playTom(ctx, gain, time) {
+  function playTom(time) {
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
-    osc.connect(env); env.connect(gain);
+    osc.connect(env); env.connect(masterGain);
     osc.frequency.setValueAtTime(120, time);
     osc.frequency.exponentialRampToValueAtTime(55, time + 0.2);
     env.gain.setValueAtTime(0.8, time);
@@ -910,14 +798,14 @@
     osc.start(time); osc.stop(time + 0.25);
   }
 
-  function playBass(ctx, gain, time) {
+  function playBass(time) {
     const osc = ctx.createOscillator();
     osc.type = 'sawtooth';
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = 400;
     const env = ctx.createGain();
-    osc.connect(filter); filter.connect(env); env.connect(gain);
+    osc.connect(filter); filter.connect(env); env.connect(masterGain);
     osc.frequency.setValueAtTime(55, time);
     osc.frequency.exponentialRampToValueAtTime(30, time + 0.3);
     env.gain.setValueAtTime(0.9, time);
@@ -925,7 +813,7 @@
     osc.start(time); osc.stop(time + 0.35);
   }
 
-  function playShaker(ctx, gain, time) {
+  function playShaker(time) {
     const bufSize = Math.floor(ctx.sampleRate * 0.06);
     const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
     const d = buf.getChannelData(0);
@@ -937,7 +825,7 @@
     f.frequency.value = 5000;
     f.Q.value = 2;
     const g = ctx.createGain();
-    src.connect(f); f.connect(g); g.connect(gain);
+    src.connect(f); f.connect(g); g.connect(masterGain);
     g.gain.setValueAtTime(0.3, time);
     g.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
     src.start(time); src.stop(time + 0.06);
@@ -949,7 +837,7 @@
   function getStepTime(step) {
     const beatDuration = 60 / bpm;
     const stepDuration = beatDuration / 4;
-    const swingAmount = (step % 2 === 0) ? (swing / 100) * stepDuration * 0.5 : -(swing / 100) * stepDuration * 0.5;
+    const swingAmount = (step % 2 === 1) ? (swing / 100) * stepDuration * 0.5 : 0;
     return stepDuration + swingAmount;
   }
 
@@ -959,7 +847,7 @@
       for (let r = 0; r < ROWS.length; r++) {
         const isSilenced = muted[r] || (anySolo() && !soloed[r]);
         if (grid[r][step] && !isSilenced) {
-          SOUNDS[r](ctx, masterGain, nextStepTime);
+          SOUNDS[r](nextStepTime);
         }
       }
       stepQueue.push({ step, time: nextStepTime });
@@ -1051,9 +939,7 @@
   // ——— Controls ———
   function togglePlay() {
     initAudio();
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(e => console.warn('Could not resume audio context:', e));
-    }
+    if (ctx.state === 'suspended') ctx.resume();
 
     isPlaying = !isPlaying;
     const btn = document.getElementById('playBtn');
