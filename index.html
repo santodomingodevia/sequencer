@@ -767,25 +767,50 @@
   }
 
   function exportWAV() {
-    const duration = (60 / bpm) * stepCount; // duration in seconds
+    // Calculate duration for two measures (two repetitions)
+    const singleMeasureDuration = (60 / bpm) * stepCount / 4; // duration per measure in seconds
+    const duration = singleMeasureDuration * 2; // two measures
     const offlineCtx = new OfflineAudioContext(2, ctx.sampleRate * duration, ctx.sampleRate);
     const offlineGain = offlineCtx.createGain();
     offlineGain.gain.value = 0.8;
     offlineGain.connect(offlineCtx.destination);
 
-    // Schedule all sounds
+    // Schedule sounds for two repetitions
     let currentTime = 0;
-    for (let step = 0; step < stepCount; step++) {
-      for (let r = 0; r < ROWS.length; r++) {
-        if (grid[r][step]) {
-          SOUNDS[r](offlineCtx, offlineGain, currentTime);
+    let maxSoundTime = 0;
+    
+    for (let repetition = 0; repetition < 2; repetition++) {
+      for (let step = 0; step < stepCount; step++) {
+        for (let r = 0; r < ROWS.length; r++) {
+          if (grid[r][step]) {
+            SOUNDS[r](offlineCtx, offlineGain, currentTime);
+            maxSoundTime = Math.max(maxSoundTime, currentTime + 0.5); // estimate sound duration
+          }
         }
+        currentTime += getStepTime(step);
       }
-      currentTime += getStepTime(step);
     }
 
-    // Render
-    offlineCtx.startRendering().then(buffer => {
+    // Render only up to the last sound + small buffer
+    const renderDuration = Math.min(duration, maxSoundTime + 0.1);
+    const renderContext = new OfflineAudioContext(2, offlineCtx.sampleRate * renderDuration, offlineCtx.sampleRate);
+    const renderGain = renderContext.createGain();
+    renderGain.gain.value = 0.8;
+    renderGain.connect(renderContext.destination);
+
+    currentTime = 0;
+    for (let repetition = 0; repetition < 2; repetition++) {
+      for (let step = 0; step < stepCount; step++) {
+        for (let r = 0; r < ROWS.length; r++) {
+          if (grid[r][step]) {
+            SOUNDS[r](renderContext, renderGain, currentTime);
+          }
+        }
+        currentTime += getStepTime(step);
+      }
+    }
+
+    renderContext.startRendering().then(buffer => {
       const wav = bufferToWave(buffer, buffer.length);
       const url = URL.createObjectURL(wav);
       const a = document.createElement('a');
