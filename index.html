@@ -968,60 +968,83 @@ async function exportWav() {
   btn.textContent = '...';
   btn.disabled = true;
 
-  // Calcular duración exacta de 2 compases (sin silencio al final)
-  let barDuration = 0;
-  for (let s = 0; s < stepCount; s++) barDuration += getStepTime(s);
-  const totalDuration = barDuration * 2;
+  // iOS Safari pierde el contexto de gesto después de await, así que
+  // abrimos la ventana antes del render mientras aún hay gesto del usuario.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  let iosWin = null;
+  if (isIOS) {
+    iosWin = window.open('', '_blank');
+    if (iosWin) iosWin.document.write('<p style="font-family:monospace;padding:20px">Generando WAV...</p>');
+  }
 
-  const sampleRate = ctx.sampleRate;
-  const offlineCtx = new OfflineAudioContext(2, Math.ceil(totalDuration * sampleRate), sampleRate);
-  const offlineMaster = offlineCtx.createGain();
-  offlineMaster.gain.value = 0.8;
-  offlineMaster.connect(offlineCtx.destination);
+  try {
+    // Calcular duración exacta de 2 compases (sin silencio al final)
+    let barDuration = 0;
+    for (let s = 0; s < stepCount; s++) barDuration += getStepTime(s);
+    const totalDuration = barDuration * 2;
 
-  // Programar 2 compases
-  let time = 0;
-  for (let bar = 0; bar < 2; bar++) {
-    for (let s = 0; s < stepCount; s++) {
-      for (let r = 0; r < ROWS.length; r++) {
-        const isSilenced = muted[r] || (anySolo() && !soloed[r]);
-        if (grid[r][s] && !isSilenced) {
-          SOUNDS[r](time, offlineCtx, offlineMaster);
+    const sampleRate = ctx.sampleRate;
+    const offlineCtx = new OfflineAudioContext(2, Math.ceil(totalDuration * sampleRate), sampleRate);
+    const offlineMaster = offlineCtx.createGain();
+    offlineMaster.gain.value = 0.8;
+    offlineMaster.connect(offlineCtx.destination);
+
+    // Programar 2 compases
+    let time = 0;
+    for (let bar = 0; bar < 2; bar++) {
+      for (let s = 0; s < stepCount; s++) {
+        for (let r = 0; r < ROWS.length; r++) {
+          const isSilenced = muted[r] || (anySolo() && !soloed[r]);
+          if (grid[r][s] && !isSilenced) {
+            SOUNDS[r](time, offlineCtx, offlineMaster);
+          }
         }
+        time += getStepTime(s);
       }
-      time += getStepTime(s);
     }
-  }
 
-  const rendered = await offlineCtx.startRendering();
+    const rendered = await offlineCtx.startRendering();
 
-  // Codificar a WAV 16-bit stereo
-  const numCh = rendered.numberOfChannels;
-  const numSamples = rendered.length;
-  const dataBytes = numSamples * numCh * 2;
-  const ab = new ArrayBuffer(44 + dataBytes);
-  const v = new DataView(ab);
-  const ws = (off, str) => { for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i)); };
-  ws(0, 'RIFF'); v.setUint32(4, 36 + dataBytes, true);
-  ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true);
-  v.setUint16(20, 1, true); v.setUint16(22, numCh, true);
-  v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * numCh * 2, true);
-  v.setUint16(32, numCh * 2, true); v.setUint16(34, 16, true);
-  ws(36, 'data'); v.setUint32(40, dataBytes, true);
-  let off = 44;
-  for (let i = 0; i < numSamples; i++) {
-    for (let ch = 0; ch < numCh; ch++) {
-      const s = Math.max(-1, Math.min(1, rendered.getChannelData(ch)[i]));
-      v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-      off += 2;
+    // Codificar a WAV 16-bit stereo
+    const numCh = rendered.numberOfChannels;
+    const numSamples = rendered.length;
+    const dataBytes = numSamples * numCh * 2;
+    const ab = new ArrayBuffer(44 + dataBytes);
+    const v = new DataView(ab);
+    const ws = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+    ws(0, 'RIFF'); v.setUint32(4, 36 + dataBytes, true);
+    ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, numCh, true);
+    v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * numCh * 2, true);
+    v.setUint16(32, numCh * 2, true); v.setUint16(34, 16, true);
+    ws(36, 'data'); v.setUint32(40, dataBytes, true);
+    let off = 44;
+    for (let i = 0; i < numSamples; i++) {
+      for (let ch = 0; ch < numCh; ch++) {
+        const s = Math.max(-1, Math.min(1, rendered.getChannelData(ch)[i]));
+        v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        off += 2;
+      }
     }
-  }
 
-  const blob = new Blob([ab], { type: 'audio/wav' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `santo-${bpm}bpm.wav`; a.click();
-  URL.revokeObjectURL(url);
+    const blob = new Blob([ab], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+
+    if (isIOS && iosWin) {
+      // En iOS: navegar la ventana ya abierta al blob WAV.
+      // Safari muestra el audio y permite guardarlo con el botón Compartir.
+      iosWin.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } else {
+      if (iosWin) iosWin.close();
+      const a = document.createElement('a');
+      a.href = url; a.download = `santo-${bpm}bpm.wav`; a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch (e) {
+    if (iosWin) iosWin.close();
+    alert('Error al exportar: ' + e.message);
+  }
 
   btn.textContent = '↓ WAV';
   btn.disabled = false;
