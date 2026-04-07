@@ -968,15 +968,6 @@ async function exportWav() {
   btn.textContent = '...';
   btn.disabled = true;
 
-  // iOS Safari pierde el contexto de gesto después de await, así que
-  // abrimos la ventana antes del render mientras aún hay gesto del usuario.
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  let iosWin = null;
-  if (isIOS) {
-    iosWin = window.open('', '_blank');
-    if (iosWin) iosWin.document.write('<p style="font-family:monospace;padding:20px">Generando WAV...</p>');
-  }
-
   try {
     // Calcular duración exacta de 2 compases (sin silencio al final)
     let barDuration = 0;
@@ -1029,20 +1020,14 @@ async function exportWav() {
 
     const blob = new Blob([ab], { type: 'audio/wav' });
     const url = URL.createObjectURL(blob);
-
-    if (isIOS && iosWin) {
-      // En iOS: navegar la ventana ya abierta al blob WAV.
-      // Safari muestra el audio y permite guardarlo con el botón Compartir.
-      iosWin.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
-    } else {
-      if (iosWin) iosWin.close();
-      const a = document.createElement('a');
-      a.href = url; a.download = `santo-${bpm}bpm.wav`; a.click();
-      URL.revokeObjectURL(url);
-    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `santo-${bpm}bpm.wav`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   } catch (e) {
-    if (iosWin) iosWin.close();
     alert('Error al exportar: ' + e.message);
   }
 
