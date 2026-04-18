@@ -249,9 +249,9 @@
     width: 32px;
     height: 32px;
     border-radius: 3px;
-    border: 1px solid #5a2a2a;
-    background: #2a1a1a;
-    color: #884444;
+    border: 1px solid var(--border);
+    background: var(--dim);
+    color: var(--text-muted);
     font-family: 'Space Mono', monospace;
     font-size: 8px;
     letter-spacing: 1px;
@@ -281,9 +281,9 @@
     width: 32px;
     height: 32px;
     border-radius: 3px;
-    border: 1px solid #1e2e4a;
-    background: #111a2a;
-    color: #3a6aaa;
+    border: 1px solid var(--border);
+    background: var(--dim);
+    color: var(--text-muted);
     font-family: 'Space Mono', monospace;
     font-size: 8px;
     letter-spacing: 1px;
@@ -296,16 +296,16 @@
   }
 
   .solo-btn:hover {
-    border-color: #4499ff;
-    color: #4499ff;
+    border-color: #ffcc00;
+    color: #ffcc00;
   }
 
   .solo-btn.soloed {
-    background: #4499ff;
-    border-color: #4499ff;
-    color: #fff;
+    background: #ffcc00;
+    border-color: #ffcc00;
+    color: #000;
     font-weight: 700;
-    box-shadow: 0 0 8px rgba(68,153,255,0.5);
+    box-shadow: 0 0 8px rgba(255,204,0,0.5);
   }
 
   .row.muted .step::after,
@@ -429,45 +429,6 @@
     background: rgba(255,107,0,0.08);
   }
 
-  /* BASS PITCH ROW */
-  .bass-pitch-row {
-    display: grid;
-    grid-template-columns: 110px 36px 36px repeat(16, 1fr);
-    gap: 4px;
-    margin-top: 1px;
-    margin-bottom: 3px;
-  }
-
-  .pitch-spacer { grid-column: span 3; }
-
-  .pitch-cell {
-    height: 22px;
-    border-radius: 2px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    font-family: 'Space Mono', monospace;
-    font-size: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: ns-resize;
-    user-select: none;
-    touch-action: none;
-    transition: background 0.1s, border-color 0.1s, color 0.1s;
-  }
-
-  .pitch-cell.step-on {
-    background: rgba(255,107,0,0.12);
-    border-color: rgba(255,107,0,0.35);
-    color: var(--accent);
-  }
-
-  .pitch-cell.step-on.pitch-up   { color: #ffaa00; border-color: rgba(255,170,0,0.5); }
-  .pitch-cell.step-on.pitch-down { color: #00c4ff; border-color: rgba(0,196,255,0.4); }
-
-  .pitch-cell.dim { opacity: 0.2; pointer-events: none; }
-
   /* VISUALIZER */
   .viz {
     width: 100%;
@@ -498,7 +459,7 @@
   .row:nth-child(5) { --row-color: #00c4ff; }
   .row:nth-child(6) { --row-color: #a855f7; }
   .row:nth-child(7) { --row-color: #ec4899; }
-  .row:nth-child(8) { --row-color: #ff2222; }
+  .row:nth-child(8) { --row-color: #ff6b00; }
 
   .volume-knob {
     display: flex;
@@ -587,13 +548,6 @@
       border-radius: 3px;
     }
 
-    .bass-pitch-row {
-      grid-template-columns: 70px 32px 32px repeat(16, 38px);
-      gap: 3px;
-      min-width: max-content;
-    }
-    .pitch-cell { height: 30px; font-size: 9px; width: 38px; }
-
     .mute-btn, .solo-btn {
       width: 32px;
       height: 38px;
@@ -629,7 +583,7 @@
 
 <header>
   <div class="logo">SANTO</div>
-  <div class="logo-sub">Sound Sequencer V1.3</div>
+  <div class="logo-sub">Sound Sequencer V1.2.2</div>
 </header>
 <div style="width:100%;padding:0 40px" class="divider-wrap"><div class="divider"></div></div>
 
@@ -713,7 +667,6 @@
     <div class="pattern-btns">
       <span class="ctrl-label" style="align-self:center">FILL</span>
       <button class="pattern-btn" title="Random fill" onclick="randomFill()">?</button>
-      <button class="pattern-btn" id="undoBtn" title="Deshacer último fill" onclick="undoFill()" style="opacity:0.3;pointer-events:none">↩</button>
       <button class="pattern-btn" title="Kick pattern" onclick="loadPreset('kick')">K</button>
       <button class="pattern-btn" title="Dance pattern" onclick="loadPreset('dance')">D</button>
       <button class="pattern-btn" title="House pattern" onclick="loadPreset('house')">H</button>
@@ -743,8 +696,8 @@ const ROWS = [
   { name: 'HAT C',  type: 'Hi-hat',  color: '#00e5a0' },
   { name: 'HAT O',  type: 'Hi-hat',  color: '#00c4ff' },
   { name: 'TOM',    type: 'Drum',    color: '#a855f7' },
-  { name: 'PERC',   type: 'Shaker',  color: '#ec4899' },
-  { name: 'BASS',   type: '808',     color: '#ff2222' },
+  { name: 'BASS',   type: '808',     color: '#ec4899' },
+  { name: 'PERC',   type: 'Shaker',  color: '#ff6b00' },
 ];
 
 const NUM_STEPS = 16;
@@ -842,77 +795,15 @@ function buildGrid() {
     }
 
     container.appendChild(rowEl);
-
-    // Fila de semitonos debajo del BASS
-    if (r === BASS_ROW) {
-      const pitchRow = document.createElement('div');
-      pitchRow.className = 'bass-pitch-row';
-      pitchRow.id = 'bass-pitch-row';
-      const spacer = document.createElement('div');
-      spacer.className = 'pitch-spacer';
-      pitchRow.appendChild(spacer);
-      for (let s = 0; s < NUM_STEPS; s++) {
-        const cell = document.createElement('div');
-        cell.className = 'pitch-cell';
-        cell.id = `pitch-${s}`;
-        cell.title = 'Arrastrar ↑↓ para cambiar semitono · Doble tap para resetear';
-        initPitchDrag(cell, s);
-        pitchRow.appendChild(cell);
-        updatePitchCell(s);
-      }
-      container.appendChild(pitchRow);
-    }
   }
 }
 
-// ——— Bass Pitch Controls ———
-let pitchDrag = null;
-
-function initPitchDrag(cell, s) {
-  cell.addEventListener('mousedown', e => {
-    pitchDrag = { s, startY: e.clientY, startVal: bassNotes[s] };
-    e.preventDefault();
-  });
-  cell.addEventListener('touchstart', e => {
-    pitchDrag = { s, startY: e.touches[0].clientY, startVal: bassNotes[s] };
-    e.preventDefault();
-  }, { passive: false });
-  cell.addEventListener('dblclick', () => { bassNotes[s] = 0; updatePitchCell(s); });
-}
-
-document.addEventListener('mousemove', e => {
-  if (!pitchDrag) return;
-  const delta = Math.round((pitchDrag.startY - e.clientY) / 8);
-  bassNotes[pitchDrag.s] = Math.max(-12, Math.min(12, pitchDrag.startVal + delta));
-  updatePitchCell(pitchDrag.s);
-});
-document.addEventListener('touchmove', e => {
-  if (!pitchDrag) return;
-  const delta = Math.round((pitchDrag.startY - e.touches[0].clientY) / 8);
-  bassNotes[pitchDrag.s] = Math.max(-12, Math.min(12, pitchDrag.startVal + delta));
-  updatePitchCell(pitchDrag.s);
-  e.preventDefault();
-}, { passive: false });
-document.addEventListener('mouseup',  () => { pitchDrag = null; });
-document.addEventListener('touchend', () => { pitchDrag = null; });
-
-function updatePitchCell(s) {
-  const cell = document.getElementById(`pitch-${s}`);
-  if (!cell) return;
-  const val = bassNotes[s];
-  const isOn = grid[BASS_ROW][s];
-  cell.textContent = val === 0 ? '0' : (val > 0 ? '+' + val : String(val));
-  cell.classList.toggle('step-on',   isOn);
-  cell.classList.toggle('pitch-up',   isOn && val > 0);
-  cell.classList.toggle('pitch-down', isOn && val < 0);
-}
 
 function toggleStep(r, s) {
   grid[r][s] = !grid[r][s];
   const el = document.getElementById(`step-${r}-${s}`);
   el.style.setProperty('--row-color', ROWS[r].color);
   el.classList.toggle('on', grid[r][s]);
-  if (r === BASS_ROW) updatePitchCell(s);
 }
 
 // ——— Sound Synthesis ———
@@ -1033,12 +924,8 @@ function playTom(time, C, G) {
   osc.start(time); osc.stop(time + 0.25);
 }
 
-function playBass(time, C, G, semitone) {
+function playBass(time, C, G) {
   C = C || ctx; G = G || masterGain;
-  semitone = semitone || 0;
-  const ratio = Math.pow(2, semitone / 12);
-  const freqStart = 69.30 * ratio;  // C#2
-  const freqEnd   = 34.65 * ratio;  // C#1
   const osc = C.createOscillator();
   osc.type = 'sawtooth';
   const filter = C.createBiquadFilter();
@@ -1046,8 +933,8 @@ function playBass(time, C, G, semitone) {
   filter.frequency.value = 400;
   const env = C.createGain();
   osc.connect(filter); filter.connect(env); env.connect(G);
-  osc.frequency.setValueAtTime(freqStart, time);
-  osc.frequency.exponentialRampToValueAtTime(freqEnd, time + 0.3);
+  osc.frequency.setValueAtTime(55, time);
+  osc.frequency.exponentialRampToValueAtTime(30, time + 0.3);
   env.gain.setValueAtTime(0.9, time);
   env.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
   osc.start(time); osc.stop(time + 0.35);
@@ -1072,9 +959,7 @@ function playShaker(time, C, G) {
   src.start(time); src.stop(time + 0.06);
 }
 
-const SOUNDS = [playKick, playSnare, playClap, playHatClosed, playHatOpen, playTom, playShaker, playBass];
-const BASS_ROW = ROWS.findIndex(r => r.name === 'BASS');
-const bassNotes = new Array(NUM_STEPS).fill(0); // semitonos -12..+12 por paso
+const SOUNDS = [playKick, playSnare, playClap, playHatClosed, playHatOpen, playTom, playBass, playShaker];
 
 // ——— WAV Export ———
 function bufferToWave(abuffer) {
@@ -1136,8 +1021,7 @@ function exportWav() {
       for (let r = 0; r < ROWS.length; r++) {
         const isSilenced = muted[r] || (anySolo() && !soloed[r]);
         if (grid[r][s] && !isSilenced) {
-          if (r === BASS_ROW) SOUNDS[r](time, offlineCtx, offlineGain, bassNotes[s]);
-          else SOUNDS[r](time, offlineCtx, offlineGain);
+          SOUNDS[r](time, offlineCtx, offlineGain);
         }
       }
       time += getStepTime(s);
@@ -1175,8 +1059,7 @@ function schedule() {
     for (let r = 0; r < ROWS.length; r++) {
       const isSilenced = muted[r] || (anySolo() && !soloed[r]);
       if (grid[r][step] && !isSilenced) {
-        if (r === BASS_ROW) SOUNDS[r](nextStepTime, null, null, bassNotes[step]);
-        else SOUNDS[r](nextStepTime);
+        SOUNDS[r](nextStepTime);
       }
     }
     stepQueue.push({ step, time: nextStepTime });
@@ -1314,10 +1197,6 @@ function clearAll() {
       if (el) { el.classList.remove('on'); el.classList.remove('current'); }
     }
   }
-  for (let s = 0; s < NUM_STEPS; s++) {
-    bassNotes[s] = 0;
-    updatePitchCell(s);
-  }
 }
 
 function setBPM(val) {
@@ -1381,23 +1260,9 @@ function setStepCount(n) {
       }
     }
   }
-  for (let s = 0; s < NUM_STEPS; s++) {
-    const cell = document.getElementById(`pitch-${s}`);
-    if (cell) cell.classList.toggle('dim', s >= n);
-  }
 }
 
-let fillSnapshot = null;
-
 function randomFill() {
-  // Guardar estado actual antes de sobreescribir
-  fillSnapshot = {
-    grid: grid.map(row => [...row]),
-    bass: [...bassNotes]
-  };
-  const btn = document.getElementById('undoBtn');
-  if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = 'auto'; }
-
   for (let r = 0; r < ROWS.length; r++) {
     const prob = r === 0 ? 0.25 : r <= 2 ? 0.2 : 0.3;
     for (let s = 0; s < stepCount; s++) {
@@ -1409,27 +1274,6 @@ function randomFill() {
       }
     }
   }
-}
-
-function undoFill() {
-  if (!fillSnapshot) return;
-  for (let r = 0; r < ROWS.length; r++) {
-    for (let s = 0; s < NUM_STEPS; s++) {
-      grid[r][s] = fillSnapshot.grid[r][s];
-      const el = document.getElementById(`step-${r}-${s}`);
-      if (el) {
-        el.style.setProperty('--row-color', ROWS[r].color);
-        el.classList.toggle('on', grid[r][s]);
-      }
-    }
-  }
-  for (let s = 0; s < NUM_STEPS; s++) {
-    bassNotes[s] = fillSnapshot.bass[s];
-    updatePitchCell(s);
-  }
-  fillSnapshot = null;
-  const btn = document.getElementById('undoBtn');
-  if (btn) { btn.style.opacity = '0.3'; btn.style.pointerEvents = 'none'; }
 }
 
 function loadPreset(name) {
